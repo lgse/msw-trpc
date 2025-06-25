@@ -8,7 +8,9 @@
 </div>
 
 > [!WARNING]
-> You are looking at a pre-release version of msw-trpc, which adds support for msw v2. Documentation may be out of date and bugs might occur, use at your own risk
+> This is a fork of https://github.com/maloguertin/msw-trpc based on https://github.com/maloguertin/msw-trpc/issues/37 which adds tRPC v11 support.
+> Use at your own risk.
+> 
 
 ## **[tPRC](https://trpc.io/) support for [MSW](https://mswjs.io/)**
 
