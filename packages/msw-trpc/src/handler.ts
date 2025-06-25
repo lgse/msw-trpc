@@ -45,7 +45,7 @@ const createTrpcHandler = (
     throw new Error('Only a single link is supported')
   }
 
-  const { type: handlerType, url } = link({ type: procedureType, path })
+  const { type: handlerType, url, methodOverride } = link({ type: procedureType, path })
 
   if (!handler && (procedureType === 'query' || procedureType === 'mutation')) {
     throw new Error('Handler is required for query and mutation procedures')
@@ -54,14 +54,14 @@ const createTrpcHandler = (
   if (handlerType === 'http') {
     if (procedureType === 'query' || procedureType === 'mutation') {
       const getInput = procedureType === 'query' ? getQueryInput : getMutationInput
-      const httpHandler = procedureType === 'query' ? http.get : http.post
+      const httpHandler = procedureType === 'mutation' || methodOverride === 'POST' ? http.post : http.get
 
       const urlRegex = new RegExp(`${url}/${path.replace('.', '[/.|.]')}$`)
 
       return httpHandler(urlRegex, async (params) => {
         try {
           const input = await getInput(params.request, transformer)
-          const body = await handler!(input) // TS doesn't seem to understand that handler is defined here, despite the check above
+          const body = await handler!({ input }) // TS doesn't seem to understand that handler is defined here, despite the check above
           return HttpResponse.json({ result: { data: transformer.output.serialize(body) } })
         } catch (e) {
           if (!(e instanceof Error)) {
@@ -90,5 +90,5 @@ const createTrpcHandler = (
 export const trpc = {
   query: (path: string, handler: Function, opts: TRPCMswConfig) => createTrpcHandler('query', path, handler, opts),
   mutation: (path: string, handler: Function, opts: TRPCMswConfig) =>
-    createTrpcHandler('mutation', path, handler, opts)
+    createTrpcHandler('mutation', path, handler, opts),
 }

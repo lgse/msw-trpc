@@ -3,31 +3,29 @@ import { TRPCError } from '@trpc/server'
 
 import { setupServer } from 'msw/node'
 import { describe, test, beforeAll, afterAll, expect, afterEach } from 'vitest'
-import superjson from 'superjson'
 
 import { links } from './links.js'
-import { AppRouter } from './router.js'
+import { AppRouter } from '../routers.js'
 import { createTRPCMsw } from '../../../msw-trpc/src/index.js'
 import { httpLink } from '../../../msw-trpc/src/links.js'
 
 const mswLinks = [
   httpLink({
-    transformer: superjson,
     url: 'http://localhost:3000/trpc',
-    headers: () => ({ 'content-type': 'application/json' }),
+    headers() {
+      return {
+        'content-type': 'application/json',
+      }
+    },
+    methodOverride: 'POST',
   }),
 ]
 
-describe('with http link and superjson transformer', () => {
+describe('with http link', () => {
   describe('queries and mutations', () => {
+    const mswTrpc = createTRPCMsw<AppRouter>({ links: mswLinks })
+    const trpc = createTRPCClient<AppRouter>({ links })
     const server = setupServer()
-    const mswTrpc = createTRPCMsw<AppRouter>({
-      links: mswLinks,
-      transformer: { input: superjson, output: superjson },
-    })
-    const trpc = createTRPCClient<AppRouter>({
-      links,
-    })
 
     beforeAll(() => server.listen())
     afterEach(() => server.resetHandlers())
@@ -49,7 +47,7 @@ describe('with http link and superjson transformer', () => {
       expect(user).toEqual({ id: '2', name: 'Robert' })
     })
 
-    test('throwing error with superjson works', async () => {
+    test('throwing error works', async () => {
       server.use(
         mswTrpc.userById.query(() => {
           throw new TRPCError({ code: 'NOT_FOUND', message: 'Resource not found' })
@@ -68,30 +66,45 @@ describe('with http link and superjson transformer', () => {
           response: expect.any(Response),
           responseJSON: {
             error: {
-              json: {
-                message: 'Resource not found',
-                code: -32004,
-                data: { code: 'NOT_FOUND', httpStatus: 404, path: 'userById' },
-              },
+              message: 'Resource not found',
+              code: -32004,
+              data: { code: 'NOT_FOUND', httpStatus: 404, path: 'userById' },
             },
           },
         },
       })
     })
 
-    test('superjson transformer works', async () => {
-      server.use(
-        mswTrpc.superjson.query(({ input }) => {
-          return new Set([input])
+    test('should use POST method for queries', async () => {
+      server.use(mswTrpc.userById.query(() => ({ id: '1', name: 'Malo' })))
+
+      const interceptedPromise = new Promise<Request>((resolve) => {
+        server.events.on('request:start', ({ request }) => {
+          resolve(request)
         })
-      )
+      })
 
-      const date = new Date()
-      const set = await trpc.superjson.query(date)
+      await trpc.userById.query('1')
 
-      expect(set).toBeInstanceOf(Set)
-      expect(set.size).toBe(1)
-      expect([...set][0]).toEqual(date)
+      const intercepted = await interceptedPromise
+
+      expect(intercepted.method).toBe('POST')
+    })
+
+    test('should use POST method for mutations', async () => {
+      server.use(mswTrpc.createUser.mutation(({ input }) => ({ id: '2', name: input })))
+
+      const interceptedPromise = new Promise<Request>((resolve) => {
+        server.events.on('request:start', ({ request }) => {
+          resolve(request)
+        })
+      })
+
+      await trpc.createUser.mutate('Robert')
+
+      const intercepted = await interceptedPromise
+
+      expect(intercepted.method).toBe('POST')
     })
   })
 })
