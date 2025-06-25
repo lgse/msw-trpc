@@ -1,6 +1,6 @@
 {
   "name": "@lgse/msw-trpc",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "tRPC API for Mock Service Worker (MSW).",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -17,7 +17,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/maloguertin/msw-trpc.git"
+    "url": "git+https://github.com/lgse/msw-trpc.git"
   },
   "keywords": [
     "msw",
@@ -26,9 +26,9 @@
     "api"
   ],
   "bugs": {
-    "url": "https://github.com/maloguertin/msw-trpc/issues"
+    "url": "https://github.com/lgse/msw-trpc/issues"
   },
-  "homepage": "https://github.com/maloguertin/msw-trpc#readme",
+  "homepage": "https://github.com/lgse/msw-trpc#readme",
   "dependencies": {
     "@trpc/client": "^11.1.0",
     "msw": "^2.7.5"
