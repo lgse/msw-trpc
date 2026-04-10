@@ -58,7 +58,7 @@ const createTrpcHandler = (
 
       const urlRegex = new RegExp(`${url}/${path.replace('.', '[/.|.]')}$`)
 
-      return httpHandler(urlRegex, async (params) => {
+      const handlerInstance = httpHandler(urlRegex, async (params) => {
         try {
           const input = await getInput(params.request, transformer)
           const body = await handler!({ input }) // TS doesn't seem to understand that handler is defined here, despite the check above
@@ -81,6 +81,16 @@ const createTrpcHandler = (
           return HttpResponse.json({ error: transformer.output.serialize(jsonError) }, { status })
         }
       })
+
+      // MSW 2.13.0+ requires a `kind` property to correctly intercept requests
+      if (!('kind' in handlerInstance) || (handlerInstance as any).kind === undefined) {
+        Object.defineProperty(handlerInstance, 'kind', {
+          enumerable: true,
+          value: 'request',
+        })
+      }
+
+      return handlerInstance
     }
   }
 
